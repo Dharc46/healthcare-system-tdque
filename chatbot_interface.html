@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Y Tế - Chẩn Đoán Bệnh Hô Hấp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 85vh;
+            min-height: 650px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .chat-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .chat-header p {
+            font-size: 15px;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 14px;
+            height: 14px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background: linear-gradient(180deg, #fafbfc 0%, #f8f9fa 100%);
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f3f4;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #4facfe;
+            border-radius: 10px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 18px 24px;
+            border-radius: 24px;
+            position: relative;
+            animation: slideIn 0.4s ease-out;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .bot-message {
+            background: white;
+            color: #2c3e50;
+            align-self: flex-start;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .bot-message strong {
+            color: #4facfe;
+            font-weight: 600;
+        }
+
+        .symptoms-container {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin: 25px;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .symptoms-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .symptom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            font-weight: 500;
+        }
+
+        .symptom-checkbox:hover {
+            border-color: #4facfe;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+        }
+
+        .symptom-checkbox.selected {
+            border-color: #4facfe;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .symptom-checkbox input {
+            margin: 0;
+            width: 18px;
+            height: 18px;
+        }
+
+        .input-section {
+            padding: 25px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px solid #e9ecef;
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .message-input:focus {
+            border-color: #4facfe;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+        }
+
+        .send-btn, .symptom-btn {
+            padding: 16px 28px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .send-btn:hover, .symptom-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .send-btn:active, .symptom-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            color: #666;
+            font-style: italic;
+            padding: 10px;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #4facfe;
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out both infinite;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .user-id-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 18px;
+            gap: 12px;
+        }
+
+        .user-id-input {
+            width: 120px;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .user-id-input:focus {
+            border-color: #4facfe;
+        }
+
+        .warning-message {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 18px 24px;
+            border-radius: 18px;
+            margin: 12px 0;
+            font-weight: 600;
+            animation: shake 0.5s ease-in-out;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .diagnosis-result {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            padding: 22px 24px;
+            border-radius: 18px;
+            margin: 12px 0;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .tab-btn:hover {
+            border-color: #4facfe;
+            background: #f8f9ff;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-color: #4facfe;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 18px 24px;
+            border-radius: 18px;
+            margin: 12px 0;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 95vh;
+                margin: 10px;
+                border-radius: 20px;
+            }
+
+            .symptoms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .input-container {
+                flex-direction: column;
+            }
+
+            .send-btn {
+                align-self: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator"></div>
+            <h1>🏥 Chatbot Y Tế</h1>
+            <p>Hệ thống chẩn đoán bệnh hô hấp thông minh</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                <p>👋 Xin chào! Tôi là chatbot y tế hỗ trợ chẩn đoán bệnh hô hấp.</p>
+                <p><strong>Bạn có thể:</strong></p>
+                <p>• Đặt câu hỏi về các bệnh hô hấp</p>
+                <p>• Chọn triệu chứng để được chẩn đoán</p>
+                <p>Hãy bắt đầu bằng cách nhập ID người dùng và chọn cách tương tác!</p>
+            </div>
+        </div>
+
+        <div class="symptoms-container" id="symptomsContainer" style="display: none;">
+            <h3 class="symptoms-title">
+                🩺 Chọn triệu chứng của bạn:
+            </h3>
+            <div class="symptoms-grid">
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Fever"> 🌡️ Sốt
+                </label>
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Cough"> 😷 Ho
+                </label>
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Sneezing"> 🤧 Hắt hơi
+                </label>
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Fatigue"> 😴 Mệt mỏi
+                </label>
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Loss of Taste"> 👅 Mất vị giác
+                </label>
+                <label class="symptom-checkbox">
+                    <input type="checkbox" value="Itchy Eyes"> 👁️ Ngứa mắt
+                </label>
+            </div>
+            <button class="symptom-btn" onclick="sendSymptoms()">📋 Gửi triệu chứng</button>
+        </div>
+
+        <div class="input-section">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('text', event)">💬 Câu hỏi</button>
+                <button class="tab-btn" onclick="switchTab('symptoms', event)">🩺 Triệu chứng</button>
+            </div>
+            
+            <div class="user-id-container">
+                <label for="userId"><strong>ID người dùng:</strong></label>
+                <input type="number" id="userId" class="user-id-input" placeholder="123" value="123">
+            </div>
+
+            <div class="input-container">
+                <input type="text" id="messageInput" class="message-input" 
+                       placeholder="Nhập câu hỏi về bệnh hô hấp..." 
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">📤 Gửi</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <span>Đang xử lý...</span>
+                <div class="loading-dots">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'text';
+        
+        // Switch between text and symptoms tabs
+        function switchTab(tab, event) {
+            currentTab = tab;
+            const symptomsContainer = document.getElementById('symptomsContainer');
+            const messageInput = document.getElementById('messageInput');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            
+            // Update tab buttons
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'symptoms') {
+                symptomsContainer.style.display = 'block';
+                messageInput.placeholder = 'Hoặc nhập câu hỏi bổ sung...';
+            } else {
+                symptomsContainer.style.display = 'none';
+                messageInput.placeholder = 'Nhập câu hỏi về bệnh hô hấp...';
+            }
+        }
+
+        // Handle symptom checkbox selection
+        document.querySelectorAll('.symptom-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT') {
+                    const input = this.querySelector('input');
+                    input.checked = !input.checked;
+                }
+                this.classList.toggle('selected', this.querySelector('input').checked);
+            });
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessage(content, isUser, messageType = 'normal') {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            switch(messageType) {
+                case 'warning':
+                    messageDiv.className = 'warning-message';
+                    break;
+                case 'diagnosis':
+                    messageDiv.className = 'diagnosis-result';
+                    break;
+                case 'error':
+                    messageDiv.className = 'error-message';
+                    break;
+                default:
+                    messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            }
+            
+            messageDiv.innerHTML = `<p>${content}</p>`;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function formatBotResponse(response) {
+            // Replace markdown-style formatting and preserve line breaks
+            return response
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.style.display = show ? 'flex' : 'none';
+        }
+
+        function validateInput() {
+            const userId = document.getElementById('userId').value;
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!userId) {
+                addMessage('⚠️ Vui lòng nhập ID người dùng!', false, 'error');
+                return false;
+            }
+
+            if (!message && currentTab === 'text') {
+                addMessage('⚠️ Vui lòng nhập câu hỏi!', false, 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        async function sendMessage() {
+            if (!validateInput()) return;
+
+            const messageInput = document.getElementById('messageInput');
+            const userId = document.getElementById('userId').value;
+            const message = messageInput.value.trim();
+            
+            if (message) {
+                addMessage(message, true);
+                messageInput.value = '';
+            }
+
+            showLoading(true);
+
+            try {
+                // Fixed: Use 'query_text' instead of 'response' to match your serializer
+                const requestBody = {
+                    user_id: parseInt(userId),
+                    query_text: message || ""
+                };
+
+                const response = await fetch('http://localhost:8002/query/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const formattedResponse = formatBotResponse(data.response);
+                    
+                    // Determine message type
+                    let messageType = 'normal';
+                    if (data.response.includes('Cảnh báo') || data.response.includes('nghiêm trọng')) {
+                        messageType = 'warning';
+                    } else if (data.response.includes('Chẩn đoán')) {
+                        messageType = 'diagnosis';
+                    }
+                    
+                    addMessage(formattedResponse, false, messageType);
+                } else {
+                    addMessage('❌ Có lỗi xảy ra: ' + (data.detail || JSON.stringify(data)), false, 'error');
+                }
+            } catch (error) {
+                addMessage('❌ Không thể kết nối đến server. Vui lòng kiểm tra lại!', false, 'error');
+                console.error('Error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        async function sendSymptoms() {
+            const userId = document.getElementById('userId').value;
+            const checkboxes = document.querySelectorAll('.symptom-checkbox input:checked');
+            const symptoms = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (!userId) {
+                addMessage('⚠️ Vui lòng nhập ID người dùng!', false, 'error');
+                return;
+            }
+
+            if (symptoms.length === 0) {
+                addMessage('⚠️ Vui lòng chọn ít nhất một triệu chứng!', false, 'error');
+                return;
+            }
+
+            addMessage(`🩺 Triệu chứng đã chọn: ${symptoms.join(', ')}`, true);
+            showLoading(true);
+
+            try {
+                const response = await fetch('http://localhost:8002/query/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        symptoms: symptoms,
+                        query_text: "" // Add empty query_text to satisfy validation
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const formattedResponse = formatBotResponse(data.response);
+                    
+                    // Determine message type
+                    let messageType = 'normal';
+                    if (data.response.includes('Cảnh báo') || data.response.includes('nghiêm trọng')) {
+                        messageType = 'warning';
+                    } else if (data.response.includes('Chẩn đoán')) {
+                        messageType = 'diagnosis';
+                    }
+                    
+                    addMessage(formattedResponse, false, messageType);
+                    
+                    // Clear selected symptoms
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                        cb.parentElement.classList.remove('selected');
+                    });
+                } else {
+                    addMessage('❌ Có lỗi xảy ra: ' + (data.detail || JSON.stringify(data)), false, 'error');
+                }
+            } catch (error) {
+                addMessage('❌ Không thể kết nối đến server. Vui lòng kiểm tra lại!', false, 'error');
+                console.error('Error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        // Auto-focus on input when page loads
+        window.onload = function() {
+            document.getElementById('messageInput').focus();
+        };
+
+        // Add Enter key support for user ID input
+        document.getElementById('userId').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('messageInput').focus();
+            }
+        });
+    </script>
+</body>
+</html>
