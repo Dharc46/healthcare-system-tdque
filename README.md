@@ -1,5 +1,5 @@
 The system is not complete yet, for now just run:  
-(you'll need to install docker and login) 
+(you'll need to install docker destop and login) 
 ```bash
 docker-compose up --build
 ```
