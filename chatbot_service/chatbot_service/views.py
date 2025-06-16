@@ -7,6 +7,7 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.http import HttpResponse
 from .models import ChatQuery
 from .serializers import ChatQuerySerializer
 from .ml_model import model, predict_with_uncertainty, diseases, test_map, medicine_map
@@ -109,10 +110,18 @@ class ChatbotQuery(APIView):
                 knowledge_base = self.load_knowledge_base()
                 response_text = self.extract_info_from_knowledge_base(query_text, knowledge_base)
 
-            # Lưu truy vấn (sửa ở đây: thêm điều kiện kiểm tra diagnosis)
+            # Lưu truy vấn
             chat_query = serializer.save(
                 predicted_disease=diagnosis, 
                 response=response_text
             )
-            return Response(ChatQuerySerializer(chat_query).data, status=status.HTTP_200_OK)
+            
+            # Tạo phản hồi JSON với UTF-8
+            response_data = ChatQuerySerializer(chat_query).data
+            response_json = json.dumps(response_data, ensure_ascii=False)  # Không escape ký tự Unicode
+            return HttpResponse(
+                content=response_json,
+                content_type='application/json; charset=utf-8',  # Chỉ định charset=utf-8
+                status=status.HTTP_200_OK
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
